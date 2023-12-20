@@ -10,4 +10,5 @@ Challenge 10 of UoB Data Analytics bootcamp - sqlalchemy
 
 ## Source code
 - code to list stations and their counts in descending order adapted from [here](https://stackoverflow.com/questions/5973553/sqlalchemy-ordering-by-count-on-a-many-to-many-relationship).
+- code for optional path arguments in @app.route adapted from [here](https://stackoverflow.com/questions/53445145/flask-optional-path-args)
   
