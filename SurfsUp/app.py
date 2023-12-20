@@ -66,9 +66,8 @@ def precipitation():
     session = Session(engine)
     
     # find most recent date
-    ordered = session.query(Measurement).order_by(Measurement.date.desc()).first()
-    most_recent_date = ordered.date
-
+    most_recent_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
+    
     # calculate a year pior to most recent date
     one_year_back = dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=366)
     
@@ -113,18 +112,17 @@ def tobs():
     session = Session(engine)
 
     # find most active station
-    most_active_query = session.query(Measurement.station, func.count(Measurement.station).label('count')).group_by(Measurement.station).order_by(text('count DESC')).first()
-    most_active_station = most_active_query[0]
+    most_active_station = session.query(Measurement.station, func.count(Measurement.station).label('count')).\
+        group_by(Measurement.station).order_by(text('count DESC')).first()[0]   
 
     # find last 12 months of data
-    ordered = session.query(Measurement.date).order_by(Measurement.date.desc()).first()
-    most_recent_date = ordered.date
+    most_recent_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
     one_year_back = dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=366)
 
-    # query last 12 months for most active station
+    # query temperatures for most active station in the last 12 months 
     temps = session.query(Measurement.date, Measurement.tobs).\
     filter(Measurement.station == most_active_station).\
-    filter(Measurement.date >=one_year_back)
+    filter(Measurement.date >=one_year_back).all()
 
     # close Session
     session.close() 
@@ -140,13 +138,12 @@ def tobs():
 
     return jsonify(temps_all)
 
-
 @app.route("/api/v1.0/<start>")
 def start_date(start):
     # create our session (link) from Python to the DB
     session = Session(engine)
 
-    # query
+    # query min, max and avg temperatures for dates from start date
     temps = session.query(func.min(Measurement.tobs),
                   func.max(Measurement.tobs),
                   func.avg(Measurement.tobs)).\
@@ -156,6 +153,8 @@ def start_date(start):
     # close Session
     session.close() 
     
+    # put it in a dict, so that users know what numbers correspond to
+    # min, max and avg
     temps_dict = {}
     temps_dict["Min"] = temps[0][0]
     temps_dict["Max"] = temps[0][1]
@@ -168,6 +167,7 @@ def start_end_date(start, end):
     # create our session (link) from Python to the DB
     session = Session(engine)
    
+    # query min, max and avg temperatures for dates between start and end date
     temps = session.query(func.min(Measurement.tobs),
                           func.max(Measurement.tobs),
                           func.avg(Measurement.tobs)).\
@@ -177,6 +177,8 @@ def start_end_date(start, end):
     # close Session
     session.close() 
     
+    # put it in a dict, so that users know what numbers correspond to
+    # min, max and avg
     temps_dict = {}
     temps_dict["Min"] = temps[0][0]
     temps_dict["Max"] = temps[0][1]
