@@ -16,10 +16,10 @@ import datetime as dt
 # Import flask
 from flask import Flask, jsonify
 
-
 #################################################
 # Database Setup
 #################################################
+# create engine
 engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 
 # reflect an existing database into a new model
@@ -50,6 +50,7 @@ app = Flask(__name__)
 def home():
     return (
         f"Welcome to the main page!<br/>"
+        f"<br/>"
         f"Here are the available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
@@ -115,12 +116,12 @@ def tobs():
     most_active_station = session.query(Measurement.station, func.count(Measurement.station).label('count')).\
         group_by(Measurement.station).order_by(text('count DESC')).first()[0]   
 
-    # find last 12 months of data
+    # define dates for last 12 months of data
     most_recent_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
     one_year_back = dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=366)
 
     # query temperatures for most active station in the last 12 months 
-    temps = session.query(Measurement.date, Measurement.tobs).\
+    temps = session.query(Measurement.tobs).\
     filter(Measurement.station == most_active_station).\
     filter(Measurement.date >=one_year_back).all()
 
@@ -128,15 +129,9 @@ def tobs():
     session.close() 
     
     # create empty variable
-    temps_all = []
+    temps_list = list(np.ravel(temps))
 
-    # get date and temp
-    for date, temp in temps:
-        temps_dict = {}
-        temps_dict[date] = temp
-        temps_all.append(temps_dict)
-
-    return jsonify(temps_all)
+    return jsonify(temps_list)
 
 @app.route("/api/v1.0/<start>")
 def start_date(start):
