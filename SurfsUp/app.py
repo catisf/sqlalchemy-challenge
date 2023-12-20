@@ -33,7 +33,7 @@ Measurement = Base.classes.measurement
 Station = Base.classes.station
 
 # Create our session (link) from Python to the DB
-# session = Session(engine)
+session = Session(engine)
 
 #################################################
 # Flask Setup
@@ -63,9 +63,7 @@ def home():
 # Precipitation route
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    # create our session (link) from Python to the DB
-    session = Session(engine)
-    
+
     # find most recent date
     most_recent_date = session.query(Measurement.date).order_by(Measurement.date.desc()).first()[0]
     
@@ -73,7 +71,7 @@ def precipitation():
     one_year_back = dt.datetime.strptime(most_recent_date, '%Y-%m-%d') - dt.timedelta(days=366)
     
     # query precipitation in the last 12 months of data
-    results =  session.query(Measurement.date, Measurement.prcp).\
+    results = session.query(Measurement.date, Measurement.prcp).\
     filter(Measurement.date.between(one_year_back, most_recent_date)).all()
 
     # close Session
@@ -82,7 +80,8 @@ def precipitation():
     # create empty variable to store results
     precepitation=[]
 
-    # add date (key) and precipitation (value) from results to dict and append to precipitation variable
+    # add date (key) and precipitation (value) from results to dict 
+    # and append to precipitation variable
     for date,prcp in results:
         precipitation_dict = {}
         precipitation_dict[date] = prcp
@@ -93,9 +92,7 @@ def precipitation():
 # Stations route
 @app.route("/api/v1.0/stations")
 def stations():
-    # create our session (link) from Python to the DB
-    session = Session(engine)
-
+    
     # query
     results = session.query(Station.station).all()
 
@@ -107,11 +104,10 @@ def stations():
     
     return jsonify(stations_list)
 
+# Tobs route
 @app.route("/api/v1.0/tobs")
 def tobs():
-    # create our session (link) from Python to the DB
-    session = Session(engine)
-
+  
     # find most active station
     most_active_station = session.query(Measurement.station, func.count(Measurement.station).label('count')).\
         group_by(Measurement.station).order_by(text('count DESC')).first()[0]   
@@ -133,46 +129,29 @@ def tobs():
 
     return jsonify(temps_list)
 
-@app.route("/api/v1.0/<start>")
-def start_date(start):
-    # create our session (link) from Python to the DB
-    session = Session(engine)
-
-    # query min, max and avg temperatures for dates from start date
-    temps = session.query(func.min(Measurement.tobs),
-                  func.max(Measurement.tobs),
-                  func.avg(Measurement.tobs)).\
-                    filter(Measurement.date >= start).all()
-
-
-    # close Session
-    session.close() 
-    
-    # put it in a dict, so that users know what numbers correspond to
-    # min, max and avg
-    temps_dict = {}
-    temps_dict["Min"] = temps[0][0]
-    temps_dict["Max"] = temps[0][1]
-    temps_dict["Avg"] = temps[0][2]
-   
-    return jsonify(temps_dict)
-
+# Start and end date routes
+@app.route("/api/v1.0/<start>", defaults={'end': None})
 @app.route("/api/v1.0/<start>/<end>")
-def start_end_date(start, end):
-    # create our session (link) from Python to the DB
-    session = Session(engine)
-   
-    # query min, max and avg temperatures for dates between start and end date
-    temps = session.query(func.min(Measurement.tobs),
-                          func.max(Measurement.tobs),
-                          func.avg(Measurement.tobs)).\
-                            filter(Measurement.date.between(start,end)).all()
+def dates(start, end):
+    
+    if end == None:
+        # query min, max and avg temperatures for dates from start date
+        temps = session.query(func.min(Measurement.tobs),
+                              func.max(Measurement.tobs),
+                              func.avg(Measurement.tobs)).\
+                                filter(Measurement.date >= start).all()
 
- 
+    else:
+        # query min, max and avg temperatures for dates between start and end date
+        temps = session.query(func.min(Measurement.tobs),
+                              func.max(Measurement.tobs),
+                              func.avg(Measurement.tobs)).\
+                                filter(Measurement.date.between(start,end)).all()
+
     # close Session
     session.close() 
     
-    # put it in a dict, so that users know what numbers correspond to
+    # put it in a dict, so that users know which numbers correspond to
     # min, max and avg
     temps_dict = {}
     temps_dict["Min"] = temps[0][0]
